@@ -1,0 +1,105 @@
+models/articles.js
+const mongoose = require("mongoose");
+const Schema = mongoose.Schema;
+
+const articleSchema = new Schema({
+  title: {
+    type: String,
+    required: true,
+  },
+  article: {
+    type: String,
+    required: true,
+  },
+  authorname: {
+    type: String,
+    required: true,
+  },
+  postDate: {
+    type: Date,
+    default: Date.now,
+  },
+});
+const Articles = mongoose.model("Articles", articleSchema);
+module.exports = Articles;
+
+routes/articles.js
+const express = require("express");
+const router = express.Router();
+const Articles = require("../models/articles");
+
+router.get("/", (req, res) => {
+  Articles.find()
+    .then((article) => res.json(article))
+    .catch((err) => res.status(400).json(`Error: ${err}`));
+});
+
+// create article
+router.post("/add", (req, res) => {
+  const newArticle = new Articles({
+    title: req.body.title,
+    article: req.body.article,
+    authorname: req.body.authorname,
+  });
+  newArticle
+    .save()
+    .then(() => res.json("new article has been created."))
+    .catch((err) => res.status(400).json(`Error: ${err}`));
+});
+
+// get by id
+
+router.get("/:id", (req, res) => {
+  Articles.findById(req.params.id)
+    .then((article) => res.json(article))
+    .catch((err) => res.status(400).json(`Error: ${err}`));
+});
+
+// update
+router.put("/update/:id", (req, res) => {
+  Articles.findById(req.params.id)
+    .then((article) => {
+      article.title = req.body.title;
+      article.article = req.body.article;
+      article.authorname = req.body.authorname;
+
+      article
+        .save()
+        .then(() => res.json("updated is sucsess"))
+        .catch((err) => res.status(400).json(`Error: ${err}`));
+    })
+    .catch((err) => res.status(400).json(`Error: ${err}`));
+});
+
+// delete article
+router.delete("/:id", (req, res) => {
+  Articles.findByIdAndDelete(req.params.id)
+    .then(() => res.json("delete is succes."))
+    .catch((err) => res.status(400).json(`Error: ${err}`));
+});
+module.exports = router;
+
+server.js
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+require("dotenv").config();
+
+const app = express();
+const port = process.env.PORT || 8080;
+app.use(cors());
+app.use(express.json());
+const uri = process.env.MONGO_URL;
+
+mongoose.connect(uri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+const connection = mongoose.connection;
+connection.once("open", () => {
+  console.log("connection DB is oke!");
+});
+
+const articlesRouter = require("./routes/articles");
+app.use("/articles", articlesRouter);
+app.listen(port, () => console.log("server is running"));
